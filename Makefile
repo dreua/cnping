@@ -25,7 +25,10 @@ searchnet : os_generic.o ping.o searchnet.o
 
 linuxinstall : cnping
 	sudo cp cnping /usr/local/bin/
-	sudo chmod +s /usr/local/bin/cnping
+	sudo setcap cap_net_raw=ep ./cnping
+	sudo setcap cap_net_raw=ep /usr/local/bin/cnping
+	# Try this in case setcap does not work for you:
+	#sudo chmod +s /usr/local/bin/cnping
 
 clean : 
 	rm -rf *.o *~ cnping cnping.exe cnping-mousey searchnet
