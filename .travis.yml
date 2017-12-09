@@ -17,6 +17,6 @@ deploy:
     secure: ncxiAIhsISkze8U9eSgViiL8Z++L+LEIA6PWzNdJUQqKf0XpLYvt+mW+zEWwfdNDaHWLGF63apJkfFVP4kn/t4tbmurgvmfCWmqv8gNERhkte8ppkJimqSF4eCR5A6JeYfwZB0YSZ8UiEZ1mj0KQhfnEZMUUey+czajCJ++hTSutcnJ47fzLAdRZxXcJPoLwpDX6i5NQSTv/Tu8tfw/AIW7WbiplSeSEdL77I+C3hfXVVEGBWrVPXIA23SXJNgQ9LJX8h3VzbZ2gDrgfsPccAUvFrQwJTWa6ovK0pRAAD9fqdsxR0vSZ/g9tVRc0XiCZ0s4KYjCyI99iMVi3ewlz+xM2lGlehGZLA6ODAkHhJgc/gGxONm7N0KE8T+Y1p7LmUojrZJal4rS3sD/PVSHubo78KgBS4E8h6qTVwMmfQsI+nOCr/Q5PWCkFy1XrdNdYkdKAVjelBVHt5SgqETm/WCmf4LJWoled0CprTF4M9DBj+UN8ikiI5R7Wm9kVP86xhdYGqUUs2pmKxfYSorujFwnfBnj19mZCn7f0Ld3DJx4depnypaVjH0bh5s+/a4XBxHH+aXqa4W5QT3eTnZI+h8q6uOaxi1FintIzUc0dH3flbIs+7BhxYLXND1F4Z3KgGhol6oOLVFcz+F8lCZx3KErIIkBiO200oDMEXujb1lM=
   file: cnping.exe
   skip_cleanup: true
-#  on:
-#    repo: dreua/cnping
-#    branch: travis-integration
+  on:
+    repo: dreua/cnping
+    branch: travis-integration
