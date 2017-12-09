@@ -1,5 +1,5 @@
 language: c
 before_install: 
-  - sudo apt-get --qq update
+  - sudo apt-get -qq update
   - sudo apt-get install -y make libxinerama-dev libxext-dev libx11-dev build-essential binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686
 script: make cnping cnping.exe
