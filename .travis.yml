@@ -20,3 +20,5 @@ deploy:
   skip_cleanup: true
   on:
     tags: true
+    repo: dreua/cnping
+    branch: travis-integration
