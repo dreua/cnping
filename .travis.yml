@@ -4,12 +4,6 @@ before_install:
 - sudo apt-get install -y make libxinerama-dev libxext-dev libx11-dev build-essential
   binutils-mingw-w64-i686 gcc-mingw-w64-i686 g++-mingw-w64-i686
 script: make cnping cnping.exe
-
-deploy2:
-  provider: releases
-  api_key: GITHUB OAUTH TOKEN
-  file: FILE TO UPLOAD
-  skip_cleanup: true
   
 deploy:
   provider: releases
