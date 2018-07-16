@@ -18,6 +18,7 @@
 #include "CNFGFunctions.h"
 #include "os_generic.h"
 #include "ping.h"
+#include "error_handling.h"
 
 unsigned frames = 0;
 unsigned long iframeno = 0;
@@ -261,14 +262,11 @@ int main( int argc, const char ** argv )
 #endif
 {
 	char title[1024];
-	int i, x, y, r;
+	int i;
 	double ThisTime;
 	double LastFPSTime = OGGetAbsoluteTime();
 	double LastFrameTime = OGGetAbsoluteTime();
 	double SecToWait;
-	int linesegs = 0;
-//	struct in_addr dst;
-	struct addrinfo *result;
 
 	srand( (int)(OGGetAbsoluteTime()*100000) );
 
@@ -309,10 +307,7 @@ int main( int argc, const char ** argv )
 
 	while(1)
 	{
-		int i, pos;
-		float f;
 		iframeno++;
-		RDPoint pto[3];
 
 
 		if( notemode &&  lastnoteupdown > 0 && OGGetAbsoluteTime() - lastnoteupdown > .05 )
@@ -334,7 +329,6 @@ int main( int argc, const char ** argv )
 		if( ThisTime > LastFPSTime + 1 )
 		{
 			frames = 0;
-			linesegs = 0;
 			LastFPSTime+=1;
 		}
 
