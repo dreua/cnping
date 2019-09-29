@@ -3,24 +3,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef TCC
 #include <unistd.h>
 #include <sys/types.h>
+#else
+#include "tccheader.h"
+#endif
 
-#ifdef WIN32
+#if defined( WIN32 ) || defined( WINDOWS )
+	#ifdef TCC
+	#else
 	#include <winsock2.h>
-	#ifndef MSG_NOSIGNAL 
-	#define MSG_NOSIGNAL 0
 	#endif
-
 #else
 	#include <sys/socket.h>
 	#include <netinet/in.h>
 	#include <netdb.h> 
 #endif
 
-#include "os_generic.h"
+#include "rawdraw/os_generic.h"
 #include "error_handling.h"
 
+#ifndef MSG_NOSIGNAL
+	#define MSG_NOSIGNAL 0
+#endif
 
 #define HTTPTIMEOUT 3.0
 
@@ -31,6 +38,15 @@ void HTTPingCallbackGot( int seqno );
 //Don't dynamically allocate resources here, since execution may be stopped arbitrarily.
 void DoHTTPing( const char * addy, double minperiod, int * seqnoptr, volatile double * timeouttime, int * socketptr, volatile int * getting_host_by_name )
 {
+#if defined(WIN32) || defined(WINDOWS)
+	WSADATA wsaData;
+	int r =	WSAStartup(MAKEWORD(2,2), &wsaData);
+	if( r )
+	{
+		ERRM( "Fault in WSAStartup\n" );
+		exit( -2 );
+	}
+#endif
 	struct sockaddr_in serveraddr;
 	struct hostent *server;
 	int httpsock;
@@ -61,7 +77,7 @@ void DoHTTPing( const char * addy, double minperiod, int * seqnoptr, volatile do
 	server = gethostbyname(hostname);
 	*getting_host_by_name = 0;
 	if (server == NULL) {
-		ERRMB("ERROR, no such host as %s\n", hostname);
+		ERRMB("ERROR, no such host as \"%s\"\n", hostname);
 		goto fail;
 	}
 
@@ -85,6 +101,11 @@ reconnect:
 		ERRMB( "%s: ERROR connecting\n", hostname );
 		goto fail;
 	}
+
+#ifdef __APPLE__
+	int opt = 1;
+	setsockopt(httpsock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
 
 	errbuffer[0] = 0;
 
@@ -206,17 +227,6 @@ static void * PingRunner( void * v )
 
 int StartHTTPing( const char * addy, double minperiod )
 {
-
-#ifdef WIN32
-	WSADATA wsaData;
-	int r =	WSAStartup(MAKEWORD(2,2), &wsaData);
-	if( r )
-	{
-		ERRM( "Fault in WSAStartup\n" );
-		exit( -2 );
-	}
-#endif
-
 	struct HTTPPingLaunch *hpl = malloc( sizeof( struct HTTPPingLaunch ) );
 	hpl->addy = addy;
 	hpl->minperiod = minperiod;

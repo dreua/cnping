@@ -1,16 +1,22 @@
-//Copyright (c) 2011-2014 <>< Charles Lohr - Under the MIT/x11 or NewBSD License you choose.
+//Copyright (c) 2011-2019 <>< Charles Lohr - Under the MIT/x11 or NewBSD License you choose.
+
+#define VERSION "1.0b3"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
 #include <string.h>
-#ifdef WIN32
+#if defined( WINDOWS ) || defined( WIN32 )
 #ifdef _MSC_VER
 #define strdup _strdup
 #endif
 #include <windows.h>
 #else
+  #ifdef __FreeBSD__
+    #include <sys/types.h>
+    #include <netinet/in.h>
+  #endif
 #include <sys/socket.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
@@ -18,8 +24,8 @@
 #include <sys/select.h>
 #include <netdb.h>
 #endif
-#include "CNFGFunctions.h"
-#include "os_generic.h"
+#include "rawdraw/CNFGFunctions.h"
+#include "rawdraw/os_generic.h"
 #include "ping.h"
 #include "error_handling.h"
 #include "httping.h"
@@ -36,7 +42,6 @@ uint64_t globalrx;
 uint64_t globallost;
 uint8_t pattern[8];
 
-
 #define PINGCYCLEWIDTH 8192
 #define TIMEOUT 4
 
@@ -47,6 +52,11 @@ int current_cycle = 0;
 int ExtraPingSize;
 int in_histogram_mode, in_frame_mode = 1;
 void HandleGotPacket( int seqno, int timeout );
+
+#if defined( WINDOWS ) || defined( WIN32 )
+WSADATA wsaData;
+#endif
+
 
 #define MAX_HISTO_MARKS (TIMEOUT*10000)
 uint64_t hist_counts[MAX_HISTO_MARKS];
@@ -148,14 +158,14 @@ int load_ping_packet( uint8_t * buffer, int bufflen )
 void * PingListen( void * r )
 {
 	listener();
-	printf( "Fault on listen.\n" );
+	ERRM( "Fault on listen.\n" );
 	exit( -2 );
 }
 
 void * PingSend( void * r )
 {
 	do_pinger( pinghost );
-	printf( "Fault on ping.\n" );
+	ERRM( "Fault on ping.\n" );
 	exit( -1 );
 }
 
@@ -166,6 +176,20 @@ void HandleKey( int keycode, int bDown )
 {
 	switch( keycode )
 	{
+
+#if defined( WIN32 ) || defined( WINDOWS )
+		case 'r':
+		{
+			char   lpFilename[1024];
+			char   lpDirectory[1024];
+			GetCurrentDirectory( 1023, lpDirectory );
+			GetModuleFileNameA( GetModuleHandle(0), lpFilename, 1023 );
+
+			CreateProcessA( lpFilename, GetCommandLine(), 0, 0, 1, 0, 0, lpDirectory, 0, 0 );
+			exit( 0 );
+			break;
+		}
+#endif
 		case 'f':
 			if( bDown ) in_frame_mode = !in_frame_mode;
 			if( !in_frame_mode ) in_histogram_mode = 1;
@@ -486,6 +510,35 @@ void DrawFrame( void )
 const char * glargv[10];
 int glargc = 0;
 
+int RegString( int write, char * data, DWORD len )
+{
+    HKEY hKey;
+	if( RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\cnping", 0, NULL,       
+        REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, NULL) == ERROR_SUCCESS)
+	{
+		if( write )
+		{
+			RegSetValueExA( hKey, "history", 0, REG_SZ, (uint8_t*)data, len );
+			return 0;
+		}
+		else
+		{
+			DWORD type;
+			if( RegGetValueA( hKey, "", "history", 0x02, &type, data, &len ) == ERROR_SUCCESS )
+			{	
+				return 0;
+			}
+			return -16;
+		}
+
+		RegCloseKey( hKey );
+	}
+	else
+	{
+		return -15;
+	}
+}
+
 INT_PTR CALLBACK TextEntry( HWND   hwndDlg, UINT   uMsg, WPARAM wParam, LPARAM lParam )
 {
 
@@ -494,6 +547,13 @@ INT_PTR CALLBACK TextEntry( HWND   hwndDlg, UINT   uMsg, WPARAM wParam, LPARAM l
 	case WM_INITDIALOG:
 		SetDlgItemText(hwndDlg, 4, "0.02");
 		SetDlgItemText(hwndDlg, 5, "0" );
+
+		char data[1024];
+		if( !RegString( 0, data, sizeof( data ) ) )
+		{
+			SetDlgItemText(hwndDlg, 3, data);
+		}
+
 		return 0;
 	case WM_COMMAND:
 		switch( wParam>>24 )
@@ -503,18 +563,20 @@ INT_PTR CALLBACK TextEntry( HWND   hwndDlg, UINT   uMsg, WPARAM wParam, LPARAM l
 			case 0:
 			{
 				int id = wParam & 0xffffff;
-				if( id == 8 )
+				if( id == 8 || id == 2 )
 				{
 					exit( -1 );
 				}
 
-				char Address[1024]; GetDlgItemText(hwndDlg, 3, Address, sizeof(Address));
-				char Period[1024]; GetDlgItemText(hwndDlg, 4, Period, sizeof(Period));
-				char Extra[1024]; GetDlgItemText(hwndDlg, 5, Extra, sizeof(Extra));
-				char Scaling[1024]; GetDlgItemText(hwndDlg, 6, Scaling, sizeof(Scaling));
+				char Address[128]; GetDlgItemText(hwndDlg, 3, Address, sizeof(Address));
+				char Period[128];  GetDlgItemText(hwndDlg, 4, Period, sizeof(Period));
+				char Extra[128];   GetDlgItemText(hwndDlg, 5, Extra, sizeof(Extra));
+				char Scaling[128]; GetDlgItemText(hwndDlg, 6, Scaling, sizeof(Scaling));
 			
 				if( strlen( Address ) )
 				{
+					RegString( 1, Address, strlen( Address ) );
+
 					glargc = 2;
 					glargv[1] = strdup( Address );
 					if( strlen( Period ) )
@@ -565,7 +627,7 @@ int main( int argc, const char ** argv )
 	ShowWindow (GetConsoleWindow(), SW_HIDE);
 #endif
 
-	srand( (int)(OGGetAbsoluteTime()*100000) );
+	srand( (uintmax_t)(OGGetAbsoluteTime()*100000) );
 
 	for( i = 0; i < sizeof( pattern ); i++ )
 	{
@@ -581,6 +643,7 @@ int main( int argc, const char ** argv )
 		argv = glargv;
 	}
 #endif
+
 	pingperiodseconds = 0.02;
 	ExtraPingSize = 0;
 	title[0] = 0;
@@ -631,7 +694,7 @@ int main( int argc, const char ** argv )
 
 	if( title[0] == 0 )
 	{
-		sprintf( title, "%s - cnping", pinghost );
+		sprintf( title, "%s - cnping "VERSION, pinghost );
 	}
 
 	if( GuiYScaleFactor > 0 )
@@ -646,18 +709,22 @@ int main( int argc, const char ** argv )
 
 	if( displayhelp )
 	{
-		#ifdef WIN32
-		ERRM( "Need at least a host address to ping.\n" );
-		#else
-		ERRM( "Usage: cnping [host] [period] [extra size] [y-axis scaling] [window title]\n"
+		ERRM( "cnping "VERSION" Usage: cnping [host] [period] [extra size] [y-axis scaling] [window title]\n"
 			"   (-h) [host]                 -- domain, IP address of ping target for ICMP or http host, i.e. http://google.com\n"
 			"   (-p) [period]               -- period in seconds (optional), default 0.02 \n"
 			"   (-s) [extra size]           -- ping packet extra size (above 12), optional, default = 0 \n"
 			"   (-y) [const y-axis scaling] -- use a fixed scaling factor instead of auto scaling (optional)\n"
 			"   (-t) [window title]         -- the title of the window (optional)\n");
-		#endif
 		return -1;
 	}
+
+#if defined( WIN32 ) || defined( WINDOWS )
+	if( WSAStartup(MAKEWORD(2,2), &wsaData) )
+	{
+		ERRM( "Fault in WSAStartup\n" );
+		exit( -2 );
+	}
+#endif
  
 	CNFGSetup( title, 320, 155 );
 
