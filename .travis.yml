@@ -16,3 +16,4 @@ deploy:
     tags: true
     repo: dreua/cnping
     branch: travis-integration
+  draft: true
